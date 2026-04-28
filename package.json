@@ -1,0 +1,45 @@
+{
+  "name": "jm-playwright-args",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "pw-args": "./dist/cli.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --clean && tsup src/cli.ts --format esm && tsc -p tsconfig.build.json",
+    "format": "biome check --write .",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "execa": "^9.6.1",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ]
+}
