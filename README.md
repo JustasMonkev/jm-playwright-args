@@ -1,11 +1,11 @@
-# playwright-args
+# jm-playwright-args
 
 Pass custom command-line arguments into Playwright config and tests without patching Playwright.
 
 ## Install
 
 ```bash
-npm install -D playwright-args @playwright/test
+npm install -D jm-playwright-args @playwright/test
 ```
 
 ## Run
@@ -14,7 +14,7 @@ npm install -D playwright-args @playwright/test
 npx pw-args --tenant=acme --build-path=dist -- test --project=chromium
 ```
 
-Everything before `--` is parsed by `playwright-args`. Everything after `--` is passed unchanged to Playwright.
+Everything before `--` is parsed by `jm-playwright-args`. Everything after `--` is passed unchanged to Playwright.
 
 If no Playwright command is provided after the custom arguments, `pw-args` runs `playwright test`.
 
@@ -26,7 +26,7 @@ npx pw-args --tenant=acme
 
 ```ts
 import { defineConfig } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 const tenant = pwArg.string('tenant', { default: 'local' });
 
@@ -41,7 +41,7 @@ export default defineConfig({
 
 ```ts
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('tenant is selected', async () => {
   expect(pwArg.string('tenant')).toBe('acme');
@@ -51,7 +51,7 @@ test('tenant is selected', async () => {
 ## Typed Args
 
 ```ts
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 const tenant = pwArg.string('tenant', { default: 'local' });
 const retries = pwArg.number('custom-retries', { default: 0 });
@@ -93,4 +93,4 @@ npx pw-args --tag=smoke --tag=checkout -- test --grep @checkout
 
 ## Limits
 
-`playwright-args` does not teach Playwright to accept unknown flags directly. It provides a wrapper command because Playwright's own CLI rejects unknown options before config and tests run.
+`jm-playwright-args` does not teach Playwright to accept unknown flags directly. It provides a wrapper command because Playwright's own CLI rejects unknown options before config and tests run.
