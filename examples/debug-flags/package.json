@@ -1,0 +1,12 @@
+{
+  "name": "playwright-args-debug-flags-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pw-args --debug-api --slow=false -- test"
+  },
+  "devDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "playwright-args": "file:../.."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "playwright-args-multi-env-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:staging": "pw-args --env=staging -- test",
+    "test:prod": "pw-args --env=prod -- test"
+  },
+  "devDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "playwright-args": "file:../.."
+  }
+}

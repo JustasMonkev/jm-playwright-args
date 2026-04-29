@@ -1,0 +1,13 @@
+{
+  "name": "playwright-args-defaults-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pw-args -- test",
+    "test:override": "pw-args --tenant=acme --workers=4 -- test"
+  },
+  "devDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "playwright-args": "file:../.."
+  }
+}

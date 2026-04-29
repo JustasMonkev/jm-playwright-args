@@ -91,6 +91,17 @@ npx pw-args --tenant=staging -- test --ui
 npx pw-args --tag=smoke --tag=checkout -- test --grep @checkout
 ```
 
+## Examples
+
+The `examples/` folder contains runnable scenarios:
+
+- `examples/basic` — minimum config wiring `--tenant` into `baseURL`.
+- `examples/typed-args` — string, number, and boolean reads in one config.
+- `examples/tags` — repeated `--tag` arguments converted to `grep` regexes.
+- `examples/multi-env` — `--env=staging|prod` switches `baseURL` per run.
+- `examples/debug-flags` — bare flags and explicit `=false` toggle launch options.
+- `examples/defaults` — fallback values when arguments are omitted.
+
 ## Limits
 
 `jm-playwright-args` does not teach Playwright to accept unknown flags directly. It provides a wrapper command because Playwright's own CLI rejects unknown options before config and tests run.

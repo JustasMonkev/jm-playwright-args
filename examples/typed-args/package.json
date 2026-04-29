@@ -1,0 +1,12 @@
+{
+  "name": "playwright-args-typed-args-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pw-args --tenant=acme --custom-retries=2 --debug-api -- test"
+  },
+  "devDependencies": {
+    "@playwright/test": ">=1.40.0",
+    "playwright-args": "file:../.."
+  }
+}
