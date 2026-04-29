@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('falls back to declared defaults when args are absent', async ({ baseURL }) => {
   expect(pwArg.string('tenant', { default: 'local' })).toBe(pwArg.has('tenant') ? pwArg.string('tenant') : 'local');

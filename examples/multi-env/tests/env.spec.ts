@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('targets the selected environment', async ({ baseURL }) => {
   const env = pwArg.string('env');

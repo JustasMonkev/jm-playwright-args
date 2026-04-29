@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('bare flag enables debug, explicit false disables slow', async () => {
   expect(pwArg.boolean('debug-api')).toBe(true);

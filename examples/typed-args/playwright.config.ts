@@ -1,5 +1,5 @@
 import { defineConfig } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 const tenant = pwArg.string('tenant', { default: 'local' });
 const retries = pwArg.number('custom-retries', { default: 0 });

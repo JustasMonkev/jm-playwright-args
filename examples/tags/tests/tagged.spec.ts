@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('checkout flow @checkout', async () => {
   expect(pwArg.array('tag')).toContain('checkout');

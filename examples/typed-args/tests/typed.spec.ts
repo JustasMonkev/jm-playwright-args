@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pwArg } from 'playwright-args';
+import { pwArg } from 'jm-playwright-args';
 
 test('reads each typed argument', async ({ baseURL }) => {
   expect(pwArg.string('tenant')).toBe('acme');

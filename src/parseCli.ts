@@ -8,11 +8,11 @@ export type ParsedCli = {
 export function parseCli(argv: string[]): ParsedCli {
   const delimiterIndex = argv.indexOf('--');
   const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
-  const playwrightArgs = delimiterIndex === -1 ? ['test'] : argv.slice(delimiterIndex + 1);
+  const forwarded = delimiterIndex === -1 ? [] : argv.slice(delimiterIndex + 1);
 
   return {
     customArgs: parseCustomArgs(customArgv),
-    playwrightArgs: playwrightArgs.length ? playwrightArgs : ['test'],
+    playwrightArgs: forwarded.length ? forwarded : ['test'],
   };
 }
 

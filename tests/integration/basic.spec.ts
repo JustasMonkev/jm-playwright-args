@@ -57,7 +57,7 @@ async function createExampleProject(): Promise<string> {
   await mkdir(binDir, { recursive: true });
   await mkdir(scopeDir, { recursive: true });
 
-  await symlink(await realpath(packageRoot), path.join(nodeModulesDir, 'playwright-args'), 'dir');
+  await symlink(await realpath(packageRoot), path.join(nodeModulesDir, 'jm-playwright-args'), 'dir');
   await symlink(
     await realpath(path.join(packageRoot, 'node_modules', '@playwright', 'test')),
     path.join(scopeDir, 'test'),

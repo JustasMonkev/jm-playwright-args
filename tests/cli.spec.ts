@@ -37,6 +37,28 @@ describe('runCli', () => {
       }),
     );
   });
+
+  test('prints help and skips Playwright when --help is passed', async () => {
+    const runPlaywright = vi.fn(async () => 0);
+    const stdout = vi.fn();
+
+    const exitCode = await runCli({ argv: ['--help'], runPlaywright, stdout });
+
+    expect(exitCode).toBe(0);
+    expect(runPlaywright).not.toHaveBeenCalled();
+    expect(stdout).toHaveBeenCalledWith(expect.stringContaining('Usage: pw-args'));
+  });
+
+  test('prints version and skips Playwright when --version is passed', async () => {
+    const runPlaywright = vi.fn(async () => 0);
+    const stdout = vi.fn();
+
+    const exitCode = await runCli({ argv: ['--version'], runPlaywright, stdout });
+
+    expect(exitCode).toBe(0);
+    expect(runPlaywright).not.toHaveBeenCalled();
+    expect(stdout).toHaveBeenCalledWith(expect.any(String));
+  });
 });
 
 describe('isCliEntry', () => {
