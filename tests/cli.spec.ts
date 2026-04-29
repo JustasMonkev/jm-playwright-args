@@ -59,6 +59,28 @@ describe('runCli', () => {
     expect(runPlaywright).not.toHaveBeenCalled();
     expect(stdout).toHaveBeenCalledWith(expect.any(String));
   });
+
+  test('forwards help and version flags after the delimiter to Playwright', async () => {
+    const runPlaywright = vi.fn(async () => 0);
+    const stdout = vi.fn();
+
+    await runCli({ argv: ['--tenant=acme', '--', 'test', '--help'], runPlaywright, stdout });
+    await runCli({ argv: ['--tenant=acme', '--', 'test', '--version'], runPlaywright, stdout });
+
+    expect(stdout).not.toHaveBeenCalled();
+    expect(runPlaywright).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        args: ['test', '--help'],
+      }),
+    );
+    expect(runPlaywright).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        args: ['test', '--version'],
+      }),
+    );
+  });
 });
 
 describe('isCliEntry', () => {

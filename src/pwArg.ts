@@ -29,7 +29,10 @@ function readString(args: CustomArgs, name: string, options: ReadOptions<string>
 function readNumber(args: CustomArgs, name: string, options: ReadOptions<number>): number {
   if (args[name] === undefined && options.default !== undefined) return options.default;
 
-  const parsed = Number(readScalarValue(args, name, undefined));
+  const value = readScalarValue(args, name, undefined);
+  if (typeof value !== 'string') throw new Error(`Custom argument "${name}" must be a number`);
+
+  const parsed = Number(value);
   if (!Number.isFinite(parsed)) throw new Error(`Custom argument "${name}" must be a number`);
   return parsed;
 }

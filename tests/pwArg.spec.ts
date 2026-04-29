@@ -14,6 +14,11 @@ describe('pwArg helper', () => {
     expect(() => pwArg.number('broken')).toThrow('Custom argument "broken" must be a number');
   });
 
+  test('rejects bare boolean flags as number args', () => {
+    const pwArg = createPwArg({ count: true });
+    expect(() => pwArg.number('count')).toThrow('Custom argument "count" must be a number');
+  });
+
   test('reads boolean args from flags and string values', () => {
     const pwArg = createPwArg({ 'debug-api': true, headed: 'false' });
     expect(pwArg.boolean('debug-api')).toBe(true);

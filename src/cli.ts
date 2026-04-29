@@ -46,13 +46,15 @@ export function isCliEntry(
 export async function runCli(options: RunCliOptions = {}): Promise<number> {
   const argv = options.argv ?? process.argv.slice(2);
   const stdout = options.stdout ?? ((line) => console.log(line));
+  const delimiterIndex = argv.indexOf('--');
+  const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
 
-  if (argv.includes('--help') || argv.includes('-h')) {
+  if (customArgv.includes('--help') || customArgv.includes('-h')) {
     stdout(helpText);
     return 0;
   }
 
-  if (argv.includes('--version') || argv.includes('-v')) {
+  if (customArgv.includes('--version') || customArgv.includes('-v')) {
     stdout(packageVersion);
     return 0;
   }
