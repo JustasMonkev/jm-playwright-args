@@ -1,11 +1,10 @@
 import { defineConfig } from '@playwright/test';
 import { pwArg } from 'jm-playwright-args';
 
-const tenant = pwArg.string('tenant', { default: 'local' });
+const tags = pwArg.array('tag', { default: ['smoke'] });
+const grep = tags.map((tag) => new RegExp(`@${tag}\\b`));
 
 export default defineConfig({
   testDir: './tests',
-  use: {
-    baseURL: `https://${tenant}.example.test`,
-  },
+  grep,
 });

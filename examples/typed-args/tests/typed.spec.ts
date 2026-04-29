@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { pwArg } from 'jm-playwright-args';
 
-test('receives tenant arg', async ({ baseURL }) => {
+test('reads each typed argument', async ({ baseURL }) => {
   expect(pwArg.string('tenant')).toBe('acme');
+  expect(pwArg.number('custom-retries')).toBe(2);
+  expect(pwArg.boolean('debug-api')).toBe(true);
   expect(baseURL).toBe('https://acme.example.test');
 });

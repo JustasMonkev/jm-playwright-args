@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeEnvArgs } from './env.js';
 import { parseCli } from './parseCli.js';
@@ -11,7 +12,23 @@ type RunCliOptions = {
   cwd?: string;
   exists?: (path: string) => boolean;
   runPlaywright?: typeof defaultRunPlaywright;
+  stdout?: (line: string) => void;
 };
+
+const helpText = `Usage: pw-args [custom args] -- [playwright args]
+
+Everything before "--" is parsed as custom arguments and forwarded to
+Playwright config and tests via the PLAYWRIGHT_ARGS_JSON env variable.
+Everything after "--" is passed unchanged to the Playwright CLI.
+
+Options:
+  -h, --help     Show this help and exit.
+  -v, --version  Print the package version and exit.
+
+Examples:
+  pw-args --tenant=acme -- test --project=chromium
+  pw-args --tag=smoke --tag=checkout -- test --grep @checkout
+`;
 
 export function isCliEntry(
   moduleUrl: string,
@@ -27,7 +44,22 @@ export function isCliEntry(
 }
 
 export async function runCli(options: RunCliOptions = {}): Promise<number> {
-  const parsed = parseCli(options.argv ?? process.argv.slice(2));
+  const argv = options.argv ?? process.argv.slice(2);
+  const stdout = options.stdout ?? ((line) => console.log(line));
+  const delimiterIndex = argv.indexOf('--');
+  const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
+
+  if (customArgv.includes('--help') || customArgv.includes('-h')) {
+    stdout(helpText);
+    return 0;
+  }
+
+  if (customArgv.includes('--version') || customArgv.includes('-v')) {
+    stdout(packageVersion);
+    return 0;
+  }
+
+  const parsed = parseCli(argv);
   const bin = resolvePlaywrightBin({ cwd: options.cwd, exists: options.exists });
   const runPlaywright = options.runPlaywright ?? defaultRunPlaywright;
 
@@ -37,6 +69,22 @@ export async function runCli(options: RunCliOptions = {}): Promise<number> {
     env: encodeEnvArgs(parsed.customArgs),
   });
 }
+
+function readPackageVersion(): string {
+  const candidates = ['../package.json', '../../package.json'];
+  for (const candidate of candidates) {
+    try {
+      const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), candidate);
+      const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: unknown };
+      if (typeof parsed.version === 'string') return parsed.version;
+    } catch {
+      // try next candidate
+    }
+  }
+  return 'unknown';
+}
+
+const packageVersion = readPackageVersion();
 
 if (isCliEntry(import.meta.url, process.argv[1])) {
   runCli()

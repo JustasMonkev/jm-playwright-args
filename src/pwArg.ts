@@ -27,7 +27,11 @@ function readString(args: CustomArgs, name: string, options: ReadOptions<string>
 }
 
 function readNumber(args: CustomArgs, name: string, options: ReadOptions<number>): number {
-  const value = readString(args, name, options.default === undefined ? {} : { default: String(options.default) });
+  if (args[name] === undefined && options.default !== undefined) return options.default;
+
+  const value = readScalarValue(args, name, undefined);
+  if (typeof value !== 'string') throw new Error(`Custom argument "${name}" must be a number`);
+
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) throw new Error(`Custom argument "${name}" must be a number`);
   return parsed;
@@ -50,8 +54,10 @@ function readArray(args: CustomArgs, name: string, options: ReadOptions<string[]
 
 function readScalarValue<T>(args: CustomArgs, name: string, defaultValue: T | undefined): ScalarValue | T {
   const value = readValue(args, name, defaultValue);
-  if (Array.isArray(value)) return value[value.length - 1] ?? '';
-  return value;
+  if (!Array.isArray(value)) return value;
+  const last = value[value.length - 1];
+  if (last === undefined) throw new Error(`Custom argument "${name}" is required`);
+  return last;
 }
 
 function readValue<T>(args: CustomArgs, name: string, defaultValue: T | undefined): Value | T {

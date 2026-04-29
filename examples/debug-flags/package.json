@@ -1,9 +1,9 @@
 {
-  "name": "playwright-args-basic-example",
+  "name": "playwright-args-debug-flags-example",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "pw-args --tenant=acme -- test"
+    "test": "pw-args --debug-api --slow=false -- test"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
