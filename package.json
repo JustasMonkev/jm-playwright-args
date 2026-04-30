@@ -1,8 +1,24 @@
 {
   "name": "jm-playwright-args",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "Pass custom command-line arguments into Playwright config and tests.",
   "type": "module",
-  "private": true,
+  "license": "MIT",
+  "keywords": [
+    "playwright",
+    "cli",
+    "test",
+    "args",
+    "e2e"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JustasMonkev/jm-playwright-args.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JustasMonkev/jm-playwright-args/issues"
+  },
+  "homepage": "https://github.com/JustasMonkev/jm-playwright-args#readme",
   "bin": {
     "pw-args": "./dist/cli.js"
   },
