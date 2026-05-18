@@ -4,13 +4,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeEnvArgs } from './env.js';
 import { parseCli } from './parseCli.js';
-import { resolvePlaywrightBin } from './resolvePlaywright.js';
+import { resolvePlaywrightInvocation } from './resolvePlaywright.js';
 import { runPlaywright as defaultRunPlaywright } from './runPlaywright.js';
 
 type RunCliOptions = {
   argv?: string[];
   cwd?: string;
   exists?: (path: string) => boolean;
+  nodePath?: string;
+  platform?: NodeJS.Platform;
   runPlaywright?: typeof defaultRunPlaywright;
   stdout?: (line: string) => void;
 };
@@ -60,12 +62,17 @@ export async function runCli(options: RunCliOptions = {}): Promise<number> {
   }
 
   const parsed = parseCli(argv);
-  const bin = resolvePlaywrightBin({ cwd: options.cwd, exists: options.exists });
+  const playwright = resolvePlaywrightInvocation({
+    cwd: options.cwd,
+    exists: options.exists,
+    nodePath: options.nodePath,
+    platform: options.platform,
+  });
   const runPlaywright = options.runPlaywright ?? defaultRunPlaywright;
 
   return await runPlaywright({
-    bin,
-    args: parsed.playwrightArgs,
+    bin: playwright.bin,
+    args: [...playwright.args, ...parsed.playwrightArgs],
     env: encodeEnvArgs(parsed.customArgs),
   });
 }

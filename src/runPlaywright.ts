@@ -23,14 +23,12 @@ type RunOptions = {
   args: string[];
   env: Record<string, string>;
   baseEnv?: NodeJS.ProcessEnv;
-  platform?: NodeJS.Platform;
   signalEmitter?: SignalEmitterLike;
   spawn?: SpawnLike;
 };
 
 export async function runPlaywright(options: RunOptions): Promise<number> {
   const spawn = options.spawn ?? nodeSpawn;
-  const platform = options.platform ?? process.platform;
   const signalEmitter = options.signalEmitter ?? process;
 
   return await new Promise((resolve, reject) => {

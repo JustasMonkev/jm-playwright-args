@@ -38,6 +38,25 @@ describe('runCli', () => {
     );
   });
 
+  test('uses node to run the local Playwright CLI on windows', async () => {
+    const runPlaywright = vi.fn(async () => 0);
+
+    await runCli({
+      argv: ['--tenant=acme', '--', 'test', '--grep', 'smoke|checkout'],
+      cwd: 'C:\\repo',
+      exists: (path: string) => path === 'C:\\repo/node_modules/playwright/cli.js',
+      nodePath: 'C:\\node\\node.exe',
+      platform: 'win32',
+      runPlaywright,
+    });
+
+    expect(runPlaywright).toHaveBeenCalledWith({
+      bin: 'C:\\node\\node.exe',
+      args: ['C:\\repo/node_modules/playwright/cli.js', 'test', '--grep', 'smoke|checkout'],
+      env: { [envKey]: '{"tenant":"acme"}' },
+    });
+  });
+
   test('prints help and skips Playwright when --help is passed', async () => {
     const runPlaywright = vi.fn(async () => 0);
     const stdout = vi.fn();

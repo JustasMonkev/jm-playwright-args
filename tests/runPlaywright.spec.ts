@@ -12,7 +12,6 @@ describe('runPlaywright', () => {
       args: ['test', '--project=chromium'],
       env: { PLAYWRIGHT_ARGS_JSON: '{"tenant":"acme"}' },
       baseEnv: { PATH: '/bin' },
-      platform: 'linux',
       spawn,
     });
 
@@ -33,14 +32,13 @@ describe('runPlaywright', () => {
     );
   });
 
-  test('uses a shell on windows', async () => {
+  test('does not use a shell on windows', async () => {
     const child = new EventEmitter();
     const spawn = vi.fn(() => child);
     const exitPromise = runPlaywright({
-      bin: 'playwright.cmd',
+      bin: 'C:\\node\\node.exe',
       args: ['test'],
       env: {},
-      platform: 'win32',
       spawn,
     });
 
@@ -48,7 +46,7 @@ describe('runPlaywright', () => {
 
     await expect(exitPromise).resolves.toBe(0);
     expect(spawn).toHaveBeenCalledWith(
-      'playwright.cmd',
+      'C:\\node\\node.exe',
       ['test'],
       expect.objectContaining({
         shell: false,
@@ -56,15 +54,26 @@ describe('runPlaywright', () => {
     );
   });
 
-  test('rejects unsafe shell metacharacters in windows arguments', async () => {
-    await expect(
-      runPlaywright({
-        bin: 'playwright.cmd',
-        args: ['test', '--grep', 'smoke & calc'],
-        env: {},
-        platform: 'win32',
+  test('passes windows arguments with shell metacharacters literally', async () => {
+    const child = new EventEmitter();
+    const spawn = vi.fn(() => child);
+    const exitPromise = runPlaywright({
+      bin: 'C:\\node\\node.exe',
+      args: ['C:\\repo\\node_modules\\playwright\\cli.js', 'test', '--grep', 'smoke|checkout', '--project=a & b'],
+      env: {},
+      spawn,
+    });
+
+    child.emit('close', 0);
+
+    await expect(exitPromise).resolves.toBe(0);
+    expect(spawn).toHaveBeenCalledWith(
+      'C:\\node\\node.exe',
+      ['C:\\repo\\node_modules\\playwright\\cli.js', 'test', '--grep', 'smoke|checkout', '--project=a & b'],
+      expect.objectContaining({
+        shell: false,
       }),
-    ).rejects.toThrow('spawn playwright.cmd ENOENT');
+    );
   });
 
   test('returns 1 when child process closes without an exit code', async () => {
