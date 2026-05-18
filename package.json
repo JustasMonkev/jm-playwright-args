@@ -1,6 +1,6 @@
 {
   "name": "jm-playwright-args",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Pass custom command-line arguments into Playwright config and tests.",
   "type": "module",
   "license": "MIT",
