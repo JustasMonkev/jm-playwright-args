@@ -32,6 +32,11 @@ export async function runPlaywright(options: RunOptions): Promise<number> {
   const spawn = options.spawn ?? nodeSpawn;
   const platform = options.platform ?? process.platform;
   const signalEmitter = options.signalEmitter ?? process;
+  const shell = platform === 'win32';
+
+  if (shell) {
+    assertSafeWindowsShellArgs(options.args);
+  }
 
   return await new Promise((resolve, reject) => {
     const child = spawn(options.bin, options.args, {
@@ -40,7 +45,7 @@ export async function runPlaywright(options: RunOptions): Promise<number> {
         ...(options.baseEnv ?? process.env),
         ...options.env,
       },
-      shell: platform === 'win32',
+      shell,
     });
 
     const forwardSignal = (signal: NodeJS.Signals) => {
@@ -65,4 +70,16 @@ export async function runPlaywright(options: RunOptions): Promise<number> {
       resolve(typeof code === 'number' ? code : 1);
     });
   });
+}
+
+const windowsShellMetacharPattern = /[&|<>^%!"]/;
+
+function assertSafeWindowsShellArgs(args: string[]): void {
+  const unsafeArg = args.find((arg) => windowsShellMetacharPattern.test(arg));
+  if (!unsafeArg) return;
+
+  throw new Error(
+    `Unsafe Playwright argument for Windows shell execution: ${unsafeArg}. ` +
+      'Remove shell metacharacters (&, |, <, >, ^, %, !, ") from forwarded args.',
+  );
 }
