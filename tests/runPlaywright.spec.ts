@@ -56,6 +56,17 @@ describe('runPlaywright', () => {
     );
   });
 
+  test('rejects unsafe shell metacharacters in windows arguments', async () => {
+    await expect(
+      runPlaywright({
+        bin: 'playwright.cmd',
+        args: ['test', '--grep', 'smoke & calc'],
+        env: {},
+        platform: 'win32',
+      }),
+    ).rejects.toThrow('Unsafe Playwright argument for Windows shell execution');
+  });
+
   test('returns 1 when child process closes without an exit code', async () => {
     const child = new EventEmitter();
     const spawn = vi.fn(() => child);
