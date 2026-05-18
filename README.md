@@ -102,6 +102,12 @@ The `examples/` folder contains runnable scenarios:
 - `examples/debug-flags` — bare flags and explicit `=false` toggle launch options.
 - `examples/defaults` — fallback values when arguments are omitted.
 
+## Native Playwright Support
+
+Playwright is adding native support for custom CLI arguments via `FullConfig` (merged in [playwright#40850](https://github.com/microsoft/playwright/pull/40850)). Once that release ships, you can pass custom args directly through Playwright without a wrapper.
+
+`jm-playwright-args` remains useful if you need to stay on an older Playwright version or prefer the typed accessor API (`pwArg.string`, `pwArg.number`, etc.).
+
 ## Limits
 
 `jm-playwright-args` does not teach Playwright to accept unknown flags directly. It provides a wrapper command because Playwright's own CLI rejects unknown options before config and tests run.
