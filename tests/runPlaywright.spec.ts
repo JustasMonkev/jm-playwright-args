@@ -51,7 +51,7 @@ describe('runPlaywright', () => {
       'playwright.cmd',
       ['test'],
       expect.objectContaining({
-        shell: true,
+        shell: false,
       }),
     );
   });
@@ -64,7 +64,7 @@ describe('runPlaywright', () => {
         env: {},
         platform: 'win32',
       }),
-    ).rejects.toThrow('Unsafe Playwright argument for Windows shell execution');
+    ).rejects.toThrow('spawn playwright.cmd ENOENT');
   });
 
   test('returns 1 when child process closes without an exit code', async () => {
