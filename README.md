@@ -8,12 +8,15 @@ Pass custom command-line arguments into Playwright config and tests without patc
 
 ```bash
 npm install -D jm-playwright-args @playwright/test
+cargo build --release   # builds the pw-args CLI at target/release/pw-args
 ```
+
+The npm package ships the Node-side `pwArg` reader used by Playwright configs and tests; the `pw-args` CLI itself is the Rust binary.
 
 ## Run
 
 ```bash
-npx pw-args --tenant=acme --build-path=dist -- test --project=chromium
+pw-args --tenant=acme --build-path=dist -- test --project=chromium
 ```
 
 Everything before `--` is parsed by `jm-playwright-args`. Everything after `--` is passed unchanged to Playwright.
@@ -21,7 +24,7 @@ Everything before `--` is parsed by `jm-playwright-args`. Everything after `--` 
 If no Playwright command is provided after the custom arguments, `pw-args` runs `playwright test`.
 
 ```bash
-npx pw-args --tenant=acme
+pw-args --tenant=acme
 ```
 
 ## Config
@@ -66,13 +69,13 @@ const hasTenant = pwArg.has('tenant');
 Boolean values can be passed as bare flags or explicit lowercase values.
 
 ```bash
-npx pw-args --debug-api --headed=false -- test
+pw-args --debug-api --headed=false -- test
 ```
 
 Repeated scalar arguments use the last value. Array reads return all values.
 
 ```bash
-npx pw-args --tenant=preview --tenant=prod --tag=smoke --tag=checkout -- test
+pw-args --tenant=preview --tenant=prod --tag=smoke --tag=checkout -- test
 ```
 
 ## Argument Semantics
@@ -88,9 +91,9 @@ npx pw-args --tenant=preview --tenant=prod --tag=smoke --tag=checkout -- test
 ## Commands
 
 ```bash
-npx pw-args --report-env=ci -- show-report playwright-report
-npx pw-args --tenant=staging -- test --ui
-npx pw-args --tag=smoke --tag=checkout -- test --grep @checkout
+pw-args --report-env=ci -- show-report playwright-report
+pw-args --tenant=staging -- test --ui
+pw-args --tag=smoke --tag=checkout -- test --grep @checkout
 ```
 
 ## Examples
@@ -106,7 +109,7 @@ The `examples/` folder contains runnable scenarios:
 
 ## Rust implementation
 
-The crate in `Cargo.toml` is a file-for-file Rust port of the TypeScript sources (`src/*.rs` next to `src/*.ts`, specs under `tests/*_spec.rs`). It builds the same `pw-args` binary, uses the same `PLAYWRIGHT_ARGS_JSON` transport, and exposes the typed readers on a process-wide `pw_arg()` singleton.
+The `pw-args` CLI and library are implemented in Rust (`src/*.rs`, BDD-style specs under `tests/*_spec.rs`). The binary forwards custom args over the `PLAYWRIGHT_ARGS_JSON` env variable and the crate exposes the typed readers on a process-wide `pw_arg()` singleton. The only Node-side code left is `index.js`, the dependency-free reader that Playwright configs and tests import.
 
 ```bash
 cargo build --release   # target/release/pw-args

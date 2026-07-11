@@ -1,8 +1,0 @@
-export function parseBooleanValue(value: string | boolean): boolean | undefined {
-  if (typeof value === 'boolean') return value;
-
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-
-  return undefined;
-}

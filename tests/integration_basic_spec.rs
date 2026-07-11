@@ -1,6 +1,6 @@
 //! Feature: basic example end-to-end (port of tests/integration/basic.spec.ts)
 //!   The Rust CLI drives a real `playwright test` run; the example project's
-//!   config and test read the tenant through the companion TS library.
+//!   config and test read the tenant through the plain-JS `index.js` reader.
 //!
 //! The "can be required from CommonJS" scenario is Node-packaging specific
 //! and has no Rust equivalent.
@@ -16,16 +16,6 @@ use std::sync::LazyLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 static PACKAGE_ROOT: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-
-/// `npm run build` once per test binary (the TS library the example imports).
-static TS_LIB_BUILT: LazyLock<bool> = LazyLock::new(|| {
-    Command::new("npm")
-        .args(["run", "build"])
-        .current_dir(&*PACKAGE_ROOT)
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(false)
-});
 
 #[test]
 fn passes_custom_tenant_into_playwright_config_and_test() {
@@ -77,7 +67,6 @@ fn create_example_project() -> Option<PathBuf> {
         eprintln!("skipping: Playwright is not installed (run `npm install` first)");
         return None;
     }
-    assert!(*TS_LIB_BUILT, "npm run build failed");
 
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let project_dir = std::env::temp_dir().join(format!("playwright-args-basic-{}-{nanos}", std::process::id()));
