@@ -2,9 +2,6 @@
 //!   The Rust CLI drives a real `playwright test` run; the example project's
 //!   config and test read the tenant through the plain-JS `index.js` reader.
 //!
-//! The "can be required from CommonJS" scenario is Node-packaging specific
-//! and has no Rust equivalent.
-//!
 //! Requires `npm install` in the package root; scenarios skip when the
 //! Playwright dependencies are absent.
 #![cfg(unix)]
@@ -16,6 +13,56 @@ use std::sync::LazyLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 static PACKAGE_ROOT: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+
+fn node_env_available() -> bool {
+    let available = PACKAGE_ROOT.join("node_modules/@playwright/test").exists();
+    if !available {
+        eprintln!("skipping: Playwright is not installed (run `npm install` first)");
+    }
+    available
+}
+
+#[test]
+fn can_be_required_from_commonjs() {
+    // Given the package root (no build step required anymore)
+    if !node_env_available() {
+        return;
+    }
+    let script = format!(
+        "const api = require('{}'); console.log(typeof api.pwArg.string);",
+        PACKAGE_ROOT.display()
+    );
+
+    // When the package is loaded through CommonJS require
+    let output = Command::new("node").args(["-e", &script]).output().expect("node should spawn");
+
+    // Then the typed reader API is exposed
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "function",
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn npm_launcher_runs_the_rust_binary() {
+    // Given the compiled binary and the npm bin launcher
+    if !node_env_available() {
+        return;
+    }
+
+    // When the launcher is invoked the way npm's .bin shim would run it
+    let output = Command::new("node")
+        .args(["bin/pw-args.js", "--version"])
+        .current_dir(&*PACKAGE_ROOT)
+        .output()
+        .expect("node should spawn");
+
+    // Then it finds the Rust binary and forwards its output and exit code
+    assert!(output.status.success(), "stderr:\n{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), env!("CARGO_PKG_VERSION"));
+}
 
 #[test]
 fn passes_custom_tenant_into_playwright_config_and_test() {
@@ -63,8 +110,7 @@ fn run_pw_args(project_dir: &Path, args: &[&str]) -> (i32, String) {
 /// symlinks this package plus the root Playwright install into node_modules.
 fn create_example_project() -> Option<PathBuf> {
     let root = &*PACKAGE_ROOT;
-    if !root.join("node_modules/@playwright/test").exists() {
-        eprintln!("skipping: Playwright is not installed (run `npm install` first)");
+    if !node_env_available() {
         return None;
     }
 

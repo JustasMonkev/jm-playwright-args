@@ -19,9 +19,17 @@
     "url": "https://github.com/JustasMonkev/jm-playwright-args/issues"
   },
   "homepage": "https://github.com/JustasMonkev/jm-playwright-args#readme",
-  "main": "./index.js",
+  "bin": {
+    "pw-args": "./bin/pw-args.js"
+  },
+  "main": "./index.cjs",
+  "types": "./index.d.ts",
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
   },
   "scripts": {
     "test": "cargo test"
@@ -36,6 +44,12 @@
     "node": ">=22"
   },
   "files": [
-    "index.js"
+    "bin",
+    "index.js",
+    "index.cjs",
+    "index.d.ts",
+    "src",
+    "Cargo.toml",
+    "Cargo.lock"
   ]
 }

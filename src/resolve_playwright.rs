@@ -37,7 +37,13 @@ pub fn resolve_playwright_invocation(options: &ResolveOptions) -> PlaywrightInvo
         .unwrap_or(if cfg!(windows) { "win32" } else { "unix" });
 
     if platform == "win32" {
-        let node = options.node_path.unwrap_or("node");
+        // PW_ARGS_NODE is set by the npm launcher to its own `process.execPath`,
+        // so a local Playwright CLI runs even when node is not on PATH.
+        let launcher_node = std::env::var("PW_ARGS_NODE").ok();
+        let node = options
+            .node_path
+            .or(launcher_node.as_deref())
+            .unwrap_or("node");
         for cli in ["node_modules/playwright/cli.js", "node_modules/@playwright/test/cli.js"] {
             let local_cli = join(&cwd, cli);
             if exists(&local_cli) {

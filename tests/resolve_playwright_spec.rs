@@ -64,6 +64,28 @@ fn runs_the_local_playwright_cli_through_node_on_windows() {
 }
 
 #[test]
+fn uses_the_launcher_provided_node_on_windows_when_no_node_path_is_given() {
+    // Given the npm launcher exported its own Node as PW_ARGS_NODE
+    std::env::set_var("PW_ARGS_NODE", "C:\\launcher\\node.exe");
+    let exists = |path: &str| path == "C:\\repo/node_modules/playwright/cli.js";
+
+    // When the invocation is resolved without an explicit node_path
+    let resolved = resolve_playwright_invocation(&ResolveOptions {
+        cwd: Some("C:\\repo"),
+        exists: Some(&exists),
+        platform: Some("win32"),
+        ..Default::default()
+    });
+    std::env::remove_var("PW_ARGS_NODE");
+
+    // Then the launcher's Node runs the cli.js instead of PATH lookup
+    assert_eq!(
+        resolved,
+        invocation("C:\\launcher\\node.exe", &["C:\\repo/node_modules/playwright/cli.js"])
+    );
+}
+
+#[test]
 fn falls_back_to_playwright_test_cli_on_windows() {
     // Given only the @playwright/test cli.js on windows
     let exists = |path: &str| path == "C:\\repo/node_modules/@playwright/test/cli.js";

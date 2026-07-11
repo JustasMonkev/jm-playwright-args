@@ -57,11 +57,25 @@ extern "C" fn handle_signal(signal: libc::c_int) {
 }
 
 #[cfg(unix)]
-fn install_signal_handlers() {
+type PreviousHandlers = (libc::sighandler_t, libc::sighandler_t);
+
+/// Installs the forwarding handlers and returns the ones they replaced.
+#[cfg(unix)]
+fn install_signal_handlers() -> PreviousHandlers {
     unsafe {
         let handler = handle_signal as *const () as libc::sighandler_t;
-        libc::signal(libc::SIGINT, handler);
-        libc::signal(libc::SIGTERM, handler);
+        (
+            libc::signal(libc::SIGINT, handler),
+            libc::signal(libc::SIGTERM, handler),
+        )
+    }
+}
+
+#[cfg(unix)]
+fn restore_signal_handlers((sigint, sigterm): PreviousHandlers) {
+    unsafe {
+        libc::signal(libc::SIGINT, sigint);
+        libc::signal(libc::SIGTERM, sigterm);
     }
 }
 
@@ -77,15 +91,20 @@ pub fn run_playwright(options: &RunOptions) -> Result<i32, String> {
     let mut child = command.spawn().map_err(|error| error.to_string())?;
 
     #[cfg(unix)]
-    {
+    let previous_handlers = {
         FORWARDER.arm(child.id() as i32);
-        install_signal_handlers();
-    }
+        install_signal_handlers()
+    };
 
     let status = child.wait().map_err(|error| error.to_string());
 
+    // Put back whatever handlers the caller had, mirroring the JS cleanup
+    // that removed only its own temporary listeners.
     #[cfg(unix)]
-    FORWARDER.disarm();
+    {
+        restore_signal_handlers(previous_handlers);
+        FORWARDER.disarm();
+    }
 
     Ok(status?.code().unwrap_or(1))
 }
