@@ -1,0 +1,26 @@
+[package]
+name = "jm-playwright-args"
+version = "0.0.3"
+edition = "2021"
+description = "Pass custom command-line arguments into Playwright config and tests."
+license = "MIT"
+repository = "https://github.com/JustasMonkev/jm-playwright-args"
+
+[lib]
+name = "jm_playwright_args"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pw-args"
+path = "src/main.rs"
+
+[dependencies]
+indexmap = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(unix)'.dev-dependencies]
+libc = "0.2"

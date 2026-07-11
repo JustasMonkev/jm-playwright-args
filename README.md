@@ -104,6 +104,15 @@ The `examples/` folder contains runnable scenarios:
 - `examples/debug-flags` — bare flags and explicit `=false` toggle launch options.
 - `examples/defaults` — fallback values when arguments are omitted.
 
+## Rust implementation
+
+The crate in `Cargo.toml` is a file-for-file Rust port of the TypeScript sources (`src/*.rs` next to `src/*.ts`, specs under `tests/*_spec.rs`). It builds the same `pw-args` binary, uses the same `PLAYWRIGHT_ARGS_JSON` transport, and exposes the typed readers on a process-wide `pw_arg()` singleton.
+
+```bash
+cargo build --release   # target/release/pw-args
+cargo test              # BDD-style specs, incl. an end-to-end Playwright run
+```
+
 ## Limits
 
 `jm-playwright-args` does not teach Playwright to accept unknown flags directly. It provides a wrapper command because Playwright's own CLI rejects unknown options before config and tests run.
