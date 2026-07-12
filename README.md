@@ -11,7 +11,7 @@ npm install -D jm-playwright-args @playwright/test
 cargo build --release   # builds the pw-args CLI at target/release/pw-args
 ```
 
-The npm package ships the Node-side `pwArg` reader used by Playwright configs and tests, plus a `pw-args` launcher for `npx`/npm scripts that runs the Rust binary (a prebuilt `target/release/pw-args`, a path given via `PW_ARGS_BIN`, or `cargo run` as a fallback).
+The npm package ships the Node-side `pwArg` reader used by Playwright configs and tests, plus a `pw-args` launcher for `npx`/npm scripts that runs the Rust binary (a prebuilt `target/release/pw-args`, a path given via `PW_ARGS_BIN`, or `cargo run`) and falls back to a pure-JS CLI when no Rust toolchain is available.
 
 ## Run
 

@@ -65,6 +65,32 @@ fn npm_launcher_runs_the_rust_binary() {
 }
 
 #[test]
+fn npm_launcher_falls_back_to_the_js_cli_without_a_rust_toolchain() {
+    // Given the basic example project and a launcher forced onto the JS path
+    let Some(project_dir) = create_example_project() else { return };
+    let launcher = PACKAGE_ROOT.join("bin/pw-args.js");
+
+    // When the launcher runs Playwright without the Rust binary or cargo
+    let output = Command::new("node")
+        .arg(launcher)
+        .args(["--tenant=acme", "--", "test"])
+        .env("PW_ARGS_FORCE_JS", "1")
+        .current_dir(&project_dir)
+        .output()
+        .expect("node should spawn");
+    let _ = fs::remove_dir_all(&project_dir);
+
+    // Then the pure-JS CLI drives the same passing run
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.status.code(), Some(0), "output:\n{combined}");
+    assert!(combined.contains("1 passed"), "output:\n{combined}");
+}
+
+#[test]
 fn passes_custom_tenant_into_playwright_config_and_test() {
     // Given the basic example project with Playwright installed
     let Some(project_dir) = create_example_project() else { return };

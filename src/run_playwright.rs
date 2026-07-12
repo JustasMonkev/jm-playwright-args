@@ -46,6 +46,7 @@ impl Default for SignalForwarder {
     }
 }
 
+#[cfg(unix)]
 static FORWARDER: SignalForwarder = SignalForwarder::new();
 
 #[cfg(unix)]
@@ -79,6 +80,40 @@ fn restore_signal_handlers((sigint, sigterm): PreviousHandlers) {
     }
 }
 
+/// Windows equivalent of the unix signal forwarding: console ctrl events
+/// (Ctrl+C, Ctrl+Break, console close) terminate the child, mirroring the
+/// JS implementation's cross-platform `child.kill` listeners.
+#[cfg(windows)]
+mod windows_signals {
+    use std::sync::atomic::{AtomicIsize, Ordering};
+    use windows_sys::Win32::Foundation::{BOOL, HANDLE};
+    use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+    use windows_sys::Win32::System::Threading::TerminateProcess;
+
+    static CHILD_HANDLE: AtomicIsize = AtomicIsize::new(0);
+
+    unsafe extern "system" fn forward(_ctrl_type: u32) -> BOOL {
+        let handle = CHILD_HANDLE.load(Ordering::SeqCst);
+        if handle != 0 {
+            unsafe { TerminateProcess(handle as HANDLE, 1) };
+            1 // handled: stay alive until the child's exit is collected
+        } else {
+            0
+        }
+    }
+
+    pub fn arm(handle: isize) {
+        CHILD_HANDLE.store(handle, Ordering::SeqCst);
+        unsafe { SetConsoleCtrlHandler(Some(forward), 1) };
+    }
+
+    /// Removes only our handler, leaving the caller's dispositions intact.
+    pub fn disarm() {
+        unsafe { SetConsoleCtrlHandler(Some(forward), 0) };
+        CHILD_HANDLE.store(0, Ordering::SeqCst);
+    }
+}
+
 pub fn run_playwright(options: &RunOptions) -> Result<i32, String> {
     let mut command = Command::new(&options.bin);
     command.args(&options.args);
@@ -95,6 +130,11 @@ pub fn run_playwright(options: &RunOptions) -> Result<i32, String> {
         FORWARDER.arm(child.id() as i32);
         install_signal_handlers()
     };
+    #[cfg(windows)]
+    {
+        use std::os::windows::io::AsRawHandle;
+        windows_signals::arm(child.as_raw_handle() as isize);
+    }
 
     let status = child.wait().map_err(|error| error.to_string());
 
@@ -105,6 +145,8 @@ pub fn run_playwright(options: &RunOptions) -> Result<i32, String> {
         restore_signal_handlers(previous_handlers);
         FORWARDER.disarm();
     }
+    #[cfg(windows)]
+    windows_signals::disarm();
 
     Ok(status?.code().unwrap_or(1))
 }
