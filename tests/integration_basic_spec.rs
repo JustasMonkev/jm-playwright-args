@@ -65,6 +65,29 @@ fn npm_launcher_runs_the_rust_binary() {
 }
 
 #[test]
+fn npm_launcher_ignores_stale_env_json_at_startup() {
+    // Given a malformed PLAYWRIGHT_ARGS_JSON inherited from the parent shell
+    if !node_env_available() {
+        return;
+    }
+
+    // When the launcher handles --help (on both the binary and JS paths)
+    for force_js in ["0", "1"] {
+        let output = Command::new("node")
+            .args(["bin/pw-args.js", "--help"])
+            .env("PLAYWRIGHT_ARGS_JSON", "{broken")
+            .env("PW_ARGS_FORCE_JS", force_js)
+            .current_dir(&*PACKAGE_ROOT)
+            .output()
+            .expect("node should spawn");
+
+        // Then it does not decode the stale value and prints usage normally
+        assert!(output.status.success(), "stderr:\n{}", String::from_utf8_lossy(&output.stderr));
+        assert!(String::from_utf8_lossy(&output.stdout).contains("Usage: pw-args"));
+    }
+}
+
+#[test]
 fn npm_launcher_falls_back_to_the_js_cli_without_a_rust_toolchain() {
     // Given the basic example project and a launcher forced onto the JS path
     let Some(project_dir) = create_example_project() else { return };

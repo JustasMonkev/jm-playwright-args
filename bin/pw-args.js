@@ -9,16 +9,22 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { envKey } from '../index.js';
+
+// Deliberately not imported from ../index.js: loading the reader would
+// decode any inherited PLAYWRIGHT_ARGS_JSON at startup and crash the
+// launcher on stale/malformed values before it can overwrite them.
+const envKey = 'PLAYWRIGHT_ARGS_JSON';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 
-const rustInvocation = resolveRustInvocation();
-if (rustInvocation) {
-  runChild(rustInvocation.bin, [...rustInvocation.args, ...args]);
-} else {
-  runJsCli();
+function main() {
+  const rustInvocation = resolveRustInvocation();
+  if (rustInvocation) {
+    runChild(rustInvocation.bin, [...rustInvocation.args, ...args]);
+  } else {
+    runJsCli();
+  }
 }
 
 function resolveRustInvocation() {
@@ -155,3 +161,5 @@ function runChild(bin, childArgs, extraEnv = {}) {
     process.exitCode = typeof code === 'number' ? code : 1;
   });
 }
+
+main();

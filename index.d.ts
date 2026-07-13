@@ -1,5 +1,10 @@
 export type CustomArgs = Record<string, string | boolean | string[]>;
 
+export type ParsedCli = {
+  customArgs: CustomArgs;
+  playwrightArgs: string[];
+};
+
 export type ReadOptions<T> = {
   default?: T;
 };
