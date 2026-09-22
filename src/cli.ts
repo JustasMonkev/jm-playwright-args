@@ -3,19 +3,20 @@ import { readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeEnvArgs } from './env.js';
-import { parseCli } from './parseCli.js';
-import { resolvePlaywrightInvocation } from './resolvePlaywright.js';
-import { runPlaywright as defaultRunPlaywright } from './runPlaywright.js';
+import { isRecord } from './helper.js';
+import { parseCli, splitArgv } from './parseCli.js';
+import { type ResolveOptions, resolvePlaywrightInvocation } from './resolvePlaywright.js';
+import { runPlaywright as defaultRunPlaywright, type RunPlaywright } from './runPlaywright.js';
 
-type RunCliOptions = {
-  argv?: string[];
-  cwd?: string;
-  exists?: (path: string) => boolean;
-  nodePath?: string;
-  platform?: NodeJS.Platform;
-  runPlaywright?: typeof defaultRunPlaywright;
-  stdout?: (line: string) => void;
-};
+export interface RunCliOptions extends Omit<ResolveOptions, 'explicitBin'> {
+  readonly argv?: readonly string[];
+  readonly runPlaywright?: RunPlaywright;
+  readonly stdout?: (line: string) => void;
+}
+
+const HELP_FLAGS: ReadonlySet<string> = new Set(['--help', '-h']);
+const VERSION_FLAGS: ReadonlySet<string> = new Set(['--version', '-v']);
+const PACKAGE_JSON_CANDIDATES: readonly string[] = ['../package.json', '../../package.json'];
 
 const helpText = `Usage: pw-args [custom args] -- [playwright args]
 
@@ -35,79 +36,73 @@ Examples:
 export function isCliEntry(
   moduleUrl: string,
   argvPath: string | undefined,
-  realpath: (path: string) => string = realpathSync,
+  realpath: (filePath: string) => string = realpathSync,
 ): boolean {
-  if (!argvPath) {
-    return false;
-  }
+  if (!argvPath) return false;
 
   const modulePath = fileURLToPath(moduleUrl);
   return normalizeEntryPath(modulePath, realpath) === normalizeEntryPath(argvPath, realpath);
 }
 
 export async function runCli(options: RunCliOptions = {}): Promise<number> {
-  const argv = options.argv ?? process.argv.slice(2);
-  const stdout = options.stdout ?? ((line) => console.log(line));
-  const delimiterIndex = argv.indexOf('--');
-  const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
+  const {
+    argv = process.argv.slice(2),
+    runPlaywright = defaultRunPlaywright,
+    stdout = (line) => console.log(line),
+    ...resolveOptions
+  } = options;
+  const { customArgv } = splitArgv(argv);
 
-  if (customArgv.includes('--help') || customArgv.includes('-h')) {
+  if (customArgv.some((arg) => HELP_FLAGS.has(arg))) {
     stdout(helpText);
     return 0;
   }
 
-  if (customArgv.includes('--version') || customArgv.includes('-v')) {
-    stdout(packageVersion);
+  if (customArgv.some((arg) => VERSION_FLAGS.has(arg))) {
+    stdout(readPackageVersion());
     return 0;
   }
 
-  const parsed = parseCli(argv);
-  const playwright = resolvePlaywrightInvocation({
-    cwd: options.cwd,
-    exists: options.exists,
-    nodePath: options.nodePath,
-    platform: options.platform,
-  });
-  const runPlaywright = options.runPlaywright ?? defaultRunPlaywright;
+  const { customArgs, playwrightArgs } = parseCli(argv);
+  const playwright = resolvePlaywrightInvocation(resolveOptions);
 
-  return await runPlaywright({
+  return runPlaywright({
     bin: playwright.bin,
-    args: [...playwright.args, ...parsed.playwrightArgs],
-    env: encodeEnvArgs(parsed.customArgs),
+    args: [...playwright.args, ...playwrightArgs],
+    env: encodeEnvArgs(customArgs),
   });
 }
 
 function readPackageVersion(): string {
-  const candidates = ['../package.json', '../../package.json'];
-  for (const candidate of candidates) {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+
+  for (const candidate of PACKAGE_JSON_CANDIDATES) {
     try {
-      const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), candidate);
-      const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: unknown };
-      if (typeof parsed.version === 'string') return parsed.version;
+      const parsed: unknown = JSON.parse(readFileSync(path.resolve(moduleDir, candidate), 'utf8'));
+      if (isRecord(parsed) && typeof parsed.version === 'string') return parsed.version;
     } catch {
       // try next candidate
     }
   }
+
   return 'unknown';
 }
 
-const packageVersion = readPackageVersion();
+function normalizeEntryPath(filePath: string, realpath: (filePath: string) => string): string {
+  try {
+    return realpath(filePath);
+  } catch {
+    return filePath;
+  }
+}
 
 if (isCliEntry(import.meta.url, process.argv[1])) {
   runCli()
     .then((code) => {
       process.exitCode = code;
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     });
-}
-
-function normalizeEntryPath(path: string, realpath: (path: string) => string): string {
-  try {
-    return realpath(path);
-  } catch {
-    return path;
-  }
 }

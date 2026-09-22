@@ -1,43 +1,57 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-type ResolveOptions = {
-  cwd?: string;
-  explicitBin?: string;
-  exists?: (path: string) => boolean;
-  nodePath?: string;
-  platform?: NodeJS.Platform;
-};
+export interface ResolveOptions {
+  readonly cwd?: string;
+  readonly explicitBin?: string;
+  readonly exists?: (filePath: string) => boolean;
+  readonly nodePath?: string;
+  readonly platform?: NodeJS.Platform;
+}
 
-export type PlaywrightInvocation = {
+export interface PlaywrightInvocation {
   bin: string;
   args: string[];
-};
+}
+
+const GLOBAL_PLAYWRIGHT_BIN = 'playwright';
+
+// Paths are relative to node_modules, in order of preference.
+const WINDOWS_CLI_SCRIPTS: readonly (readonly string[])[] = [
+  ['playwright', 'cli.js'],
+  ['@playwright', 'test', 'cli.js'],
+];
+const POSIX_BIN: readonly string[] = ['.bin', 'playwright'];
 
 export function resolvePlaywrightBin(options: ResolveOptions = {}): string {
   return resolvePlaywrightInvocation(options).bin;
 }
 
 export function resolvePlaywrightInvocation(options: ResolveOptions = {}): PlaywrightInvocation {
-  if (options.explicitBin) return { bin: options.explicitBin, args: [] };
+  const {
+    cwd = process.cwd(),
+    explicitBin,
+    exists = existsSync,
+    nodePath = process.execPath,
+    platform = process.platform,
+  } = options;
 
-  const cwd = options.cwd ?? process.cwd();
-  const exists = options.exists ?? existsSync;
-  const platform = options.platform ?? process.platform;
+  if (explicitBin) return { bin: explicitBin, args: [] };
+
+  const nodeModules = path.join(cwd, 'node_modules');
 
   if (platform === 'win32') {
-    const localCli = path.join(cwd, 'node_modules', 'playwright', 'cli.js');
-    if (exists(localCli)) return { bin: options.nodePath ?? process.execPath, args: [localCli] };
+    // The .cmd shim in node_modules/.bin needs a shell, so run the CLI script through node instead.
+    const cliScript = WINDOWS_CLI_SCRIPTS.map((segments) => path.join(nodeModules, ...segments)).find((candidate) =>
+      exists(candidate),
+    );
+    if (cliScript) return { bin: nodePath, args: [cliScript] };
 
-    const localTestCli = path.join(cwd, 'node_modules', '@playwright', 'test', 'cli.js');
-    if (exists(localTestCli)) return { bin: options.nodePath ?? process.execPath, args: [localTestCli] };
-
-    return { bin: 'playwright', args: [] };
+    return { bin: GLOBAL_PLAYWRIGHT_BIN, args: [] };
   }
 
-  const localBin = path.join(cwd, 'node_modules', '.bin', 'playwright');
-
+  const localBin = path.join(nodeModules, ...POSIX_BIN);
   if (exists(localBin)) return { bin: localBin, args: [] };
 
-  return { bin: 'playwright', args: [] };
+  return { bin: GLOBAL_PLAYWRIGHT_BIN, args: [] };
 }

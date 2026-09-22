@@ -1,8 +1,9 @@
-import type { CustomArgs } from './parseCli.js';
+import { isRecord } from './helper.js';
+import type { CustomArgs, CustomArgValue } from './types.js';
 
 export const envKey = 'PLAYWRIGHT_ARGS_JSON';
 
-export function encodeEnvArgs(customArgs: CustomArgs): Record<string, string> {
+export function encodeEnvArgs(customArgs: CustomArgs): Record<typeof envKey, string> {
   return {
     [envKey]: JSON.stringify(customArgs),
   };
@@ -25,17 +26,13 @@ export function decodeEnvArgs(env: NodeJS.ProcessEnv = process.env): CustomArgs 
 }
 
 function isCustomArgs(value: unknown): value is CustomArgs {
-  if (!isRecord(value)) return false;
-
-  return Object.entries(value).every(([name, argValue]) => {
-    if (!name) return false;
-
-    if (typeof argValue === 'string' || typeof argValue === 'boolean') return true;
-
-    return Array.isArray(argValue) && argValue.every((item) => typeof item === 'string');
-  });
+  return (
+    isRecord(value) && Object.entries(value).every(([name, argValue]) => name !== '' && isCustomArgValue(argValue))
+  );
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function isCustomArgValue(value: unknown): value is CustomArgValue {
+  if (typeof value === 'string' || typeof value === 'boolean') return true;
+
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }

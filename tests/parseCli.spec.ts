@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseCli } from '../src/parseCli.js';
+import { parseCli, splitArgv } from '../src/parseCli.js';
 
 describe('parseCli', () => {
   test('splits custom args from playwright args at delimiter', () => {
@@ -74,11 +74,30 @@ describe('parseCli', () => {
     });
   });
 
+  test('keeps __proto__ as a regular argument name', () => {
+    const { customArgs } = parseCli(['--__proto__=a', '--__proto__=b']);
+    expect(Object.getPrototypeOf(customArgs)).toBe(Object.prototype);
+    expect(Object.entries(customArgs)).toEqual([['__proto__', ['a', 'b']]]);
+  });
+
   test('rejects positional custom args before delimiter', () => {
     expect(() => parseCli(['tenant=acme', '--', 'test'])).toThrow('Custom argument must start with "--": tenant=acme');
   });
 
   test('rejects empty custom arg names', () => {
     expect(() => parseCli(['--=value', '--', 'test'])).toThrow('Custom argument name cannot be empty');
+  });
+});
+
+describe('splitArgv', () => {
+  test('splits at the first delimiter only', () => {
+    expect(splitArgv(['--tenant=acme', '--', 'test', '--', 'extra'])).toEqual({
+      customArgv: ['--tenant=acme'],
+      forwardedArgv: ['test', '--', 'extra'],
+    });
+  });
+
+  test('treats all args as custom when no delimiter is present', () => {
+    expect(splitArgv(['--tenant=acme'])).toEqual({ customArgv: ['--tenant=acme'], forwardedArgv: [] });
   });
 });
