@@ -12,7 +12,7 @@ type ReadOptions<T> = {
 export function createPwArg(args: CustomArgs = decodeEnvArgs()) {
   return {
     raw: () => cloneArgs(args),
-    has: (name: string) => args[name] !== undefined,
+    has: (name: string) => getArg(args, name) !== undefined,
     string: (name: string, options: ReadOptions<string> = {}) => readString(args, name, options),
     number: (name: string, options: ReadOptions<number> = {}) => readNumber(args, name, options),
     boolean: (name: string, options: ReadOptions<boolean> = {}) => readBoolean(args, name, options),
@@ -27,7 +27,7 @@ function readString(args: CustomArgs, name: string, options: ReadOptions<string>
 }
 
 function readNumber(args: CustomArgs, name: string, options: ReadOptions<number>): number {
-  if (args[name] === undefined && options.default !== undefined) return options.default;
+  if (getArg(args, name) === undefined && options.default !== undefined) return options.default;
 
   const value = readScalarValue(args, name, undefined);
   if (typeof value !== 'string') throw new Error(`Custom argument "${name}" must be a number`);
@@ -46,7 +46,7 @@ function readBoolean(args: CustomArgs, name: string, options: ReadOptions<boolea
 }
 
 function readArray(args: CustomArgs, name: string, options: ReadOptions<string[]>): string[] {
-  const value = args[name];
+  const value = getArg(args, name);
   if (value === undefined) return [...(options.default ?? [])];
   if (Array.isArray(value)) return [...value];
   return [String(value)];
@@ -61,12 +61,16 @@ function readScalarValue<T>(args: CustomArgs, name: string, defaultValue: T | un
 }
 
 function readValue<T>(args: CustomArgs, name: string, defaultValue: T | undefined): Value | T {
-  const value = args[name];
+  const value = getArg(args, name);
   if (value === undefined) {
     if (defaultValue !== undefined) return defaultValue;
     throw new Error(`Custom argument "${name}" is required`);
   }
   return value;
+}
+
+function getArg(args: CustomArgs, name: string): Value | undefined {
+  return Object.hasOwn(args, name) ? args[name] : undefined;
 }
 
 function cloneArgs(args: CustomArgs): CustomArgs {

@@ -82,8 +82,10 @@ function readPackageVersion(): string {
   for (const candidate of candidates) {
     try {
       const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), candidate);
-      const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: unknown };
-      if (typeof parsed.version === 'string') return parsed.version;
+      const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
+      if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && typeof parsed.version === 'string') {
+        return parsed.version;
+      }
     } catch {
       // try next candidate
     }

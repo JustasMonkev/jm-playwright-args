@@ -52,7 +52,8 @@ describe('pwArg helper', () => {
     const pwArg = createPwArg({ tag: ['smoke'] });
 
     const raw = pwArg.raw();
-    (raw.tag as string[]).push('mutated');
+    if (!Array.isArray(raw.tag)) throw new Error('Expected tag to be an array');
+    raw.tag.push('mutated');
     expect(pwArg.array('tag')).toEqual(['smoke']);
 
     const tags = pwArg.array('tag');
@@ -76,6 +77,17 @@ describe('pwArg helper', () => {
     expect(pwArg.raw()).toEqual({ tenant: 'acme' });
     expect(pwArg.has('tenant')).toBe(true);
     expect(pwArg.has('missing')).toBe(false);
+  });
+
+  test('only reads own argument names', () => {
+    const pwArg = createPwArg({});
+    expect(pwArg.has('constructor')).toBe(false);
+    expect(() => pwArg.string('constructor')).toThrow('Custom argument "constructor" is required');
+    expect(pwArg.array('__proto__')).toEqual([]);
+
+    const parsed = createPwArg(JSON.parse('{"__proto__":"safe"}'));
+    expect(parsed.has('__proto__')).toBe(true);
+    expect(parsed.string('__proto__')).toBe('safe');
   });
 
   test('throws when required args are missing', () => {

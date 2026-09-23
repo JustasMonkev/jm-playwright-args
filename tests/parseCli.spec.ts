@@ -67,6 +67,16 @@ describe('parseCli', () => {
     });
   });
 
+  test('treats inherited object names as ordinary arguments', () => {
+    const { customArgs } = parseCli(['--constructor=first', '--constructor=second', '--__proto__=safe']);
+
+    expect(Object.hasOwn(customArgs, 'constructor')).toBe(true);
+    expect(Object.hasOwn(customArgs, '__proto__')).toBe(true);
+    expect(customArgs.constructor).toEqual(['first', 'second']);
+    expect(customArgs.__proto__).toBe('safe');
+    expect(Object.getPrototypeOf(customArgs)).toBe(Object.prototype);
+  });
+
   test('defaults delimiter-only input to playwright test', () => {
     expect(parseCli(['--'])).toEqual({
       customArgs: {},

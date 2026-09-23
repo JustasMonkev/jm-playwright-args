@@ -5,7 +5,7 @@ export type ParsedCli = {
   playwrightArgs: string[];
 };
 
-export function parseCli(argv: string[]): ParsedCli {
+export function parseCli(argv: readonly string[]): ParsedCli {
   const delimiterIndex = argv.indexOf('--');
   const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
   const forwarded = delimiterIndex === -1 ? [] : argv.slice(delimiterIndex + 1);
@@ -16,8 +16,8 @@ export function parseCli(argv: string[]): ParsedCli {
   };
 }
 
-function parseCustomArgs(argv: string[]): CustomArgs {
-  const result: CustomArgs = {};
+function parseCustomArgs(argv: readonly string[]): CustomArgs {
+  const result = new Map<string, CustomArgs[string]>();
 
   for (const arg of argv) {
     if (!arg.startsWith('--')) throw new Error(`Custom argument must start with "--": ${arg}`);
@@ -29,11 +29,11 @@ function parseCustomArgs(argv: string[]): CustomArgs {
 
     if (!name) throw new Error('Custom argument name cannot be empty');
 
-    const previous = result[name];
-    if (previous === undefined) result[name] = value;
+    const previous = result.get(name);
+    if (previous === undefined) result.set(name, value);
     else if (Array.isArray(previous)) previous.push(String(value));
-    else result[name] = [String(previous), String(value)];
+    else result.set(name, [String(previous), String(value)]);
   }
 
-  return result;
+  return Object.fromEntries(result);
 }
