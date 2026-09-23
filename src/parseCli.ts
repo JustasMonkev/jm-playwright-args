@@ -1,39 +1,60 @@
-export type CustomArgs = Record<string, string | boolean | string[]>;
+import type { CustomArgs, CustomArgValue, ParsedCli } from './types.js';
 
-export type ParsedCli = {
-  customArgs: CustomArgs;
-  playwrightArgs: string[];
-};
+const DELIMITER = '--';
+const ARG_PREFIX = '--';
+const DEFAULT_PLAYWRIGHT_ARGS: readonly string[] = ['test'];
 
-export function parseCli(argv: string[]): ParsedCli {
-  const delimiterIndex = argv.indexOf('--');
-  const customArgv = delimiterIndex === -1 ? argv : argv.slice(0, delimiterIndex);
-  const forwarded = delimiterIndex === -1 ? [] : argv.slice(delimiterIndex + 1);
+export interface SplitArgv {
+  customArgv: string[];
+  forwardedArgv: string[];
+}
+
+/** Splits argv at the first `--` into custom arguments and arguments forwarded to Playwright. */
+export function splitArgv(argv: readonly string[]): SplitArgv {
+  const delimiterIndex = argv.indexOf(DELIMITER);
+  if (delimiterIndex === -1) return { customArgv: [...argv], forwardedArgv: [] };
 
   return {
-    customArgs: parseCustomArgs(customArgv),
-    playwrightArgs: forwarded.length ? forwarded : ['test'],
+    customArgv: argv.slice(0, delimiterIndex),
+    forwardedArgv: argv.slice(delimiterIndex + 1),
   };
 }
 
-function parseCustomArgs(argv: string[]): CustomArgs {
-  const result: CustomArgs = {};
+export function parseCli(argv: readonly string[]): ParsedCli {
+  const { customArgv, forwardedArgv } = splitArgv(argv);
+
+  return {
+    customArgs: parseCustomArgs(customArgv),
+    playwrightArgs: forwardedArgv.length > 0 ? forwardedArgv : [...DEFAULT_PLAYWRIGHT_ARGS],
+  };
+}
+
+function parseCustomArgs(argv: readonly string[]): CustomArgs {
+  // A Map keeps names such as "__proto__" as plain data instead of touching the object prototype.
+  const result = new Map<string, CustomArgValue>();
 
   for (const arg of argv) {
-    if (!arg.startsWith('--')) throw new Error(`Custom argument must start with "--": ${arg}`);
-
-    const withoutPrefix = arg.slice(2);
-    const equalsIndex = withoutPrefix.indexOf('=');
-    const name = equalsIndex === -1 ? withoutPrefix : withoutPrefix.slice(0, equalsIndex);
-    const value: string | boolean = equalsIndex === -1 ? true : withoutPrefix.slice(equalsIndex + 1);
-
-    if (!name) throw new Error('Custom argument name cannot be empty');
-
-    const previous = result[name];
-    if (previous === undefined) result[name] = value;
-    else if (Array.isArray(previous)) previous.push(String(value));
-    else result[name] = [String(previous), String(value)];
+    const { name, value } = parseCustomArg(arg);
+    result.set(name, mergeValue(result.get(name), value));
   }
 
-  return result;
+  return Object.fromEntries(result);
+}
+
+function parseCustomArg(arg: string): { name: string; value: string | true } {
+  if (!arg.startsWith(ARG_PREFIX)) throw new Error(`Custom argument must start with "--": ${arg}`);
+
+  const body = arg.slice(ARG_PREFIX.length);
+  const equalsIndex = body.indexOf('=');
+  const name = equalsIndex === -1 ? body : body.slice(0, equalsIndex);
+
+  if (!name) throw new Error('Custom argument name cannot be empty');
+
+  return { name, value: equalsIndex === -1 ? true : body.slice(equalsIndex + 1) };
+}
+
+function mergeValue(previous: CustomArgValue | undefined, value: string | true): CustomArgValue {
+  if (previous === undefined) return value;
+  if (Array.isArray(previous)) return [...previous, String(value)];
+  return [String(previous), String(value)];
 }

@@ -1,58 +1,61 @@
 import { spawn as nodeSpawn } from 'node:child_process';
-import type { EventEmitter } from 'node:events';
 
-type ChildProcessLike = EventEmitter & {
-  kill?: (signal: NodeJS.Signals) => boolean;
-};
+interface ChildProcessLike {
+  once(event: 'close', listener: (code: number | null) => void): unknown;
+  once(event: 'error', listener: (error: Error) => void): unknown;
+  kill?(signal: NodeJS.Signals): boolean;
+}
 
-type SignalEmitterLike = {
-  on: (signal: NodeJS.Signals, listener: () => void) => unknown;
-  off: (signal: NodeJS.Signals, listener: () => void) => unknown;
-};
+interface SignalEmitterLike {
+  on(signal: NodeJS.Signals, listener: () => void): unknown;
+  off(signal: NodeJS.Signals, listener: () => void): unknown;
+}
 
-type SpawnOptions = {
+interface SpawnOptions {
   stdio: 'inherit';
   env: NodeJS.ProcessEnv;
-  shell: boolean;
-};
+  shell: false;
+}
 
-type SpawnLike = (command: string, args: string[], options: SpawnOptions) => ChildProcessLike;
+type SpawnLike = (command: string, args: readonly string[], options: SpawnOptions) => ChildProcessLike;
 
-type RunOptions = {
-  bin: string;
-  args: string[];
-  env: Record<string, string>;
-  baseEnv?: NodeJS.ProcessEnv;
-  signalEmitter?: SignalEmitterLike;
-  spawn?: SpawnLike;
-};
+export interface RunPlaywrightOptions {
+  readonly bin: string;
+  readonly args: readonly string[];
+  readonly env: Readonly<Record<string, string>>;
+  readonly baseEnv?: NodeJS.ProcessEnv;
+  readonly signalEmitter?: SignalEmitterLike;
+  readonly spawn?: SpawnLike;
+}
 
-export async function runPlaywright(options: RunOptions): Promise<number> {
-  const spawn = options.spawn ?? nodeSpawn;
-  const signalEmitter = options.signalEmitter ?? process;
+export type RunPlaywright = (options: RunPlaywrightOptions) => Promise<number>;
 
-  return await new Promise((resolve, reject) => {
-    const child = spawn(options.bin, options.args, {
+const FORWARDED_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
+
+export function runPlaywright(options: RunPlaywrightOptions): Promise<number> {
+  const { bin, args, env, baseEnv = process.env } = options;
+  const signalEmitter: SignalEmitterLike = options.signalEmitter ?? process;
+  const spawn: SpawnLike = options.spawn ?? nodeSpawn;
+
+  return new Promise<number>((resolve, reject) => {
+    const child = spawn(bin, args, {
       stdio: 'inherit',
-      env: {
-        ...(options.baseEnv ?? process.env),
-        ...options.env,
-      },
+      env: { ...baseEnv, ...env },
+      // Never use a shell: arguments must reach Playwright literally, without shell interpretation.
       shell: false,
     });
 
-    const forwardSignal = (signal: NodeJS.Signals) => {
-      child.kill?.(signal);
-    };
-    const forwardSigint = () => forwardSignal('SIGINT');
-    const forwardSigterm = () => forwardSignal('SIGTERM');
+    const forwarders = FORWARDED_SIGNALS.map((signal) => ({
+      signal,
+      listener: () => {
+        child.kill?.(signal);
+      },
+    }));
     const cleanup = () => {
-      signalEmitter.off('SIGINT', forwardSigint);
-      signalEmitter.off('SIGTERM', forwardSigterm);
+      for (const { signal, listener } of forwarders) signalEmitter.off(signal, listener);
     };
 
-    signalEmitter.on('SIGINT', forwardSigint);
-    signalEmitter.on('SIGTERM', forwardSigterm);
+    for (const { signal, listener } of forwarders) signalEmitter.on(signal, listener);
 
     child.once('error', (error) => {
       cleanup();
@@ -60,7 +63,7 @@ export async function runPlaywright(options: RunOptions): Promise<number> {
     });
     child.once('close', (code) => {
       cleanup();
-      resolve(typeof code === 'number' ? code : 1);
+      resolve(code ?? 1);
     });
   });
 }

@@ -78,6 +78,12 @@ describe('pwArg helper', () => {
     expect(pwArg.has('missing')).toBe(false);
   });
 
+  test('ignores names inherited from Object.prototype', () => {
+    const pwArg = createPwArg({});
+    expect(pwArg.has('toString')).toBe(false);
+    expect(() => pwArg.string('constructor')).toThrow('Custom argument "constructor" is required');
+  });
+
   test('throws when required args are missing', () => {
     const pwArg = createPwArg({});
     expect(() => pwArg.string('tenant')).toThrow('Custom argument "tenant" is required');
